@@ -1,0 +1,438 @@
+
+
+
+###################################################
+######        Python 3.x environment       ########
+###################################################
+
+
+Python 3 Conda
+C:\Users\Daniel.Cardenas\AppData\Local\ESRI\conda\envs\my_arcgispro-py3
+
+
+
+
+###################################################
+##########        SMARTSHEET API       ############
+###################################################
+
+
+
+# Install the smartsheet sdk with the command: pip install smartsheet-python-sdk
+import smartsheet
+import configparser
+import logging
+import os
+
+_dir = os.path.dirname(os.path.abspath(__file__))
+config = configparser.ConfigParser()
+config.read(_dir + r"\config\config.ini")
+api_token=config['api_token']['token']
+#print(api_token)
+
+
+# Initialize client. Uses the API token in the environment variable "SMARTSHEET_ACCESS_TOKEN"
+smart = smartsheet.Smartsheet(access_token=api_token)
+# Make sure we don't miss any error
+smart.errors_as_exceptions(True)
+
+# Log all calls
+#logging.basicConfig(filename='rwsheet.log', level=logging.INFO)
+logging.basicConfig(filename=_dir + '/rwsheet.log', level=logging.DEBUG)
+# Import the sheet
+
+
+# OPEN SHEETS
+data_folder_id = 2776500131915652   # Sheets/Daniel/Dev
+sheet_id = 1811574341035908 # DCSSDEV-1D15B-M (1-D15B Mainlines clone)
+
+
+
+
+
+
+###################################################
+##############        LIST FILES       ############
+###################################################
+
+
+import os
+
+path = r"C:\Users\Daniel.Cardenas\Desktop\DANIEL\WOs\September\0911 Friday"
+
+files = os.listdir(path)
+for file in files:
+    print(file)
+
+
+
+
+
+
+###################################################
+##############   REGULAR EXPRESSIONS   ############
+###################################################
+
+
+
+Clean Up Addresses from Unearth
+-----------------------------------
+
+ SAN FRAN.*
+  - L\d.*
+ L\d
+ \n
+
+
+
+
+WO#, Plat, Operator  (After DirList.py)
+-----------------------------------
+.+PLAT (.*) - NC([\d|A-Z]+) - (.+)\.pdf
+$2    $1    $3
+
+
+
+
+St Address only
+-----------------------------------
+Row \d+, WO# \d+- ([\d|-]+[A-Z]*) ([\w| ]+ [DR|AVE|ST|BLVD|WAY|LN|CT|CIR]+)(.+) not trans.+
+(matches whole line)
+$1 $2 returns:
+524 PENNSYLVANIA AVE
+355 TEXAS ST
+
+
+MAP_JOIN only
+-----------------------------------
+Row \d+, WO# \d+- (\d+.+) not trans.+
+(matches whole line)
+$1 returns:
+1670 OWENS ST_L1Other: See NotesOther: See Notes
+414 TEXAS ST_L1P-TrapMainline
+
+
+St Address [TAB] MAP_JOIN
+-----------------------------------
+Row \d+, WO# \d+- ([\d|-]+[A-Z]*) ([\w| ]+ [DR|AVE|ST|BLVD|WAY|LN|CT|CIR]+)(.+) not trans.+
+(matches whole line)
+$1 $2 \t$1 $2$3
+
+returns:
+414 TEXAS ST 	414 TEXAS ST_L1P-TrapMainline
+126 TEXAS ST 	126 TEXAS ST_L1P-TrapMSA
+
+
+Address
+414 TEXAS ST 	414 TEXAS ST_L1P-TrapMainline
+126 TEXAS ST 	126 TEXAS ST_L1P-TrapMSA
+355 TEXAS ST 	355 TEXAS ST_L1P-TrapMSA
+524 PENNSYLVANIA AVE 	524 PENNSYLVANIA AVE_L1P-TrapMainline
+524 PENNSYLVANIA AVE 	524 PENNSYLVANIA AVE_L1P-TrapFoundation C/O
+1670 OWENS ST 	1670 OWENS ST_L1Other: See NotesOther: See Notes
+1700 OWENS ST 	1700 OWENS ST_L3P-TrapMainline
+1700 OWENS ST 	1700 OWENS ST_L3P-TrapMSA
+1700 OWENS ST 	1700 OWENS ST_L2P-TrapMainline
+1700 OWENS ST 	1700 OWENS ST_L1P-TrapMSA
+
+
+
+
+
+
+
+######################################
+##############   ArcPy   #############
+######################################
+
+
+
+######### ADD Fields to DBF #########
+
+arcpy.management.AddFields(
+    'STORM', 
+    [['COMPLETE_I', 'TEXT', 'COMPLETE_I', 255, '', ''],
+     ['CLEAR', 'TEXT', 'CLEAR', 255, '', ''],
+     ['MAIN_FT', 'TEXT', 'MAIN_FT', 255, '', ''],
+     ['INSPECT_D', 'TEXT', 'INSPECT_D', 255, '', ''], ['ACCESS', 'TEXT', 'ACCESS', 255, '', ''], ['END', 'TEXT', 'END', 255, '', ''], ['REASON_NOT', 'TEXT', 'REASON_NOT', 255, '', '']
+    ])
+
+arcpy.management.AddFields(
+    'MAIN',
+    [['COMPLETE_I', 'TEXT', 'COMPLETE_I', 255, '', ''],
+     ['CLEAR', 'TEXT', 'CLEAR', 255, '', ''],
+     ['MAIN_FT', 'TEXT', 'MAIN_FT', 255, '', ''],
+     ['INSPECT_D', 'TEXT', 'INSPECT_D', 255, '', ''],
+     ['ACCESS', 'TEXT', 'ACCESS', 255, '', ''],
+     ['END', 'TEXT', 'END', 255, '', ''],
+     ['REASON_NOT', 'TEXT', 'REASON_NOT', 255, '', '']
+    ])
+
+
+arcpy.management.AddFields(
+    'Laterals',
+    [['NOTES', 'TEXT', 'NOTES', 255, '', ''],
+     ['ACCESS', 'TEXT', 'ACCESS', 255, '', ''],
+     ['END', 'TEXT', 'END', 255, '', ''],
+     ['LSR', 'TEXT', 'LSR', 255, '', ''],
+     ['WORK_ORDER', 'TEXT', 'WORK_ORDER', 255, '', ''],
+     ['OPERATOR', 'TEXT', 'OPERATOR', 255, '', ''],
+     ['SIF_DATE', 'TEXT', 'SIF_DATE', 255, '', ''],
+     ['INSPECT_T', 'TEXT', 'INSPECT_T', 255, '', '']
+    ])
+
+
+
+
+
+
+######### Calculate Fields - Set Pipe_ID == AA_SFPIPE #########
+
+arcpy.management.CalculateField("Mains", "PIPE_ID", "!AA_SFSPIPE!", "PYTHON3", '', "TEXT")
+
+
+
+
+######### Select By Attribute #########
+
+## (Parcel Address_ = )
+arcpy.management.SelectLayerByAttribute(
+    "Parcels", "NEW_SELECTION", 
+    "Parcels_export.Address_ = '1496 39TH AVE' Or Parcels_export.Address_ = '1482 39TH AVE' Or Parcels_export.Address_ = '1571 35TH AVE' Or Parcels_export.Address_ = '1488 34TH AVE' Or Parcels_export.Address_ = '1471 34TH AVE' Or Parcels_export.Address_ = '1458 36TH AVE'", 
+    None)
+
+
+## (Manhole Includes)
+arcpy.management.SelectLayerByAttribute("Manholes", "NEW_SELECTION", "AA_NODE_ID IN (17180)", None)
+
+## (Mains LIKE)
+arcpy.management.SelectLayerByAttribute("Mains", "NEW_SELECTION", "AA_SFSPIPE LIKE '%17180%'", None)
+
+
+## (Multiple Mains)
+
+##### GREP #####
+
+##Find in Selection
+#Find: \n
+#Replace: ' Or AA_SFSPIPE = '
+
+'''
+##Source:
+
+181536-80076
+32316-17181 
+17075-32315 
+32310-17068 
+17072-32310 
+32311-17072 
+17071-32311 
+
+##Result:
+
+AA_SFSPIPE = '181536-80076' Or AA_SFSPIPE = '32316-17181 ' Or AA_SFSPIPE = '17075-32315 ' Or AA_SFSPIPE = '32310-17068 ' Or AA_SFSPIPE = '17072-32310 ' Or AA_SFSPIPE = '32311-17072 ' Or AA_SFSPIPE = '17071-32311' 
+'''
+
+arcpy.management.SelectLayerByAttribute(
+    "Mains", "NEW_SELECTION", 
+    "AA_SFSPIPE = 'MH510E_32572' Or AA_SFSPIPE = 'MH510D_MH510E' Or AA_SFSPIPE = 'MH510C_MH510D' Or AA_SFSPIPE = 'MH510B_MH510C' Or AA_SFSPIPE = 'MH510A_MH510B' Or AA_SFSPIPE = 'MH510_MH510A' Or AA_SFSPIPE = '17419_MH510' Or AA_SFSPIPE = '17520_17528' Or AA_SFSPIPE = '17527-17518' Or AA_SFSPIPE = '17518-17505'",
+    None)
+
+
+arcpy.management.SelectLayerByAttribute(
+    "Dupe_Pipes", "NEW_SELECTION", 
+    "GID IN (7692758, 7694958, 135311302, 135311304, 135311306, 135311308, 7860570, 135238558, 135238559, 135238584, 135238593, 135236063, 135238632, 135236077, 7692501, 7692587, 7692590, 7692598, 7692611, 7692612, 7692613, 7692620, 7692619, 7692618, 7692617, 7692621, 7692669, 7692633, 7692630, 7692690, 7692693, 7692732, 7692730, 7692731, 7692759, 7688695, 135311298, 135311299, 7689489, 7694553, 7695310, 7694954, 7689378, 7689379, 7689380, 7689381, 7689383, 7689384, 7693349, 7688696, 7688698, 7693273, 7689634, 7694433, 7694953, 7694950, 7689015, 7689018, 7689020, 7693851, 7689599, 7689519, 7689189, 7689269, 7689270, 7693350, 7689369, 7689370, 7689371, 7689501, 7716789, 7716790, 7720074, 7720075, 7716632, 135311301, 135311300, 135311303, 135311305, 135311307, 7860562, 7860571, 7860565, 7860572, 135152381, 7835231, 7835232, 7860561, 135236985, 135236986, 135236987, 135236988, 135236990, 135236991, 135236992, 135236993, 135238561, 135236058, 135236072, 135238620, 135238626, 135239067, 135152384, 135236090, 7692593, 7692601, 7692602, 7692604, 7692614, 7692615, 7692623, 7832963, 7694571, 7694572, 7689521, 7689602, 7689603, 7689589, 7689615, 7689632, 7694430, 7689597, 7689520, 7689522, 7689572, 7689573, 7689575, 7689592, 7689593, 7689594, 7689595, 7689596, 7689574, 7689611, 7689612, 7689490, 7689491, 7689492, 7689515, 7720122, 7720124, 7720126, 7720128, 7720130, 7720120, 7720119, 7720060, 7720027, 7720132, 7720134, 7719968, 7720059, 7720056, 7720136, 135238698, 135238585, 135238590, 135238619, 135238622, 135238623, 135238624, 135238625, 135238627, 135238628, 135238629, 135238633, 135238634, 135238635, 135236074, 135236075, 135236076, 7692579, 7692578, 7692580, 7692585, 7692584, 7692583, 7692582)",
+    None)
+
+
+GID IN (
+     7692758, 7694958, 135311302, 135311304, 135311306, 135311308, 7860570, 135238558, 135238559, 135238584, 135238593, 135236063, 135238632, 135236077, 7692501, 7692587, 7692590, 7692598, 7692611, 7692612, 7692613, 7692620, 7692619, 7692618, 7692617, 7692621, 7692669, 7692633, 7692630, 7692690, 7692693, 7692732, 7692730, 7692731, 7692759, 7688695, 135311298, 135311299, 7689489, 7694553, 7695310, 7694954, 7689378, 7689379, 7689380, 7689381, 7689383, 7689384, 7693349, 7688696, 7688698, 7693273, 7689634, 7694433, 7694953, 7694950, 7689015, 7689018, 7689020, 7693851, 7689599, 7689519, 7689189, 7689269, 7689270, 7693350, 7689369, 7689370, 7689371, 7689501, 7716789, 7716790, 7720074, 7720075, 7716632, 135311301, 135311300, 135311303, 135311305, 135311307, 7860562, 7860571, 7860565, 7860572, 135152381, 7835231, 7835232, 7860561, 135236985, 135236986, 135236987, 135236988, 135236990, 135236991, 135236992, 135236993, 135238561, 135236058, 135236072, 135238620, 135238626, 135239067, 135152384, 135236090, 7692593, 7692601, 7692602, 7692604, 7692614, 7692615, 7692623, 7832963, 7694571, 7694572, 7689521, 7689602, 7689603, 7689589, 7689615, 7689632, 7694430, 7689597, 7689520, 7689522, 7689572, 7689573, 7689575, 7689592, 7689593, 7689594, 7689595, 7689596, 7689574, 7689611, 7689612, 7689490, 7689491, 7689492, 7689515, 7720122, 7720124, 7720126, 7720128, 7720130, 7720120, 7720119, 7720060, 7720027, 7720132, 7720134, 7719968, 7720059, 7720056, 7720136, 135238698, 135238585, 135238590, 135238619, 135238622, 135238623, 135238624, 135238625, 135238627, 135238628, 135238629, 135238633, 135238634, 135238635, 135236074, 135236075, 135236076, 7692579, 7692578, 7692580, 7692585, 7692584, 7692583, 7692582
+    )
+
+
+
+arcpy.management.SelectLayerByAttribute(
+    "Laterals_20200811", "NEW_SELECTION",
+    "Laterals_20200811.ADDRESS = '1516 25TH ST' Or Laterals_20200811.ADDRESS = '22 DAKOTA ST' Or Laterals_20200811.ADDRESS = '995 CONNECTICUT ST' Or Laterals_20200811.ADDRESS = '963 CONNECTICUT ST' Or Laterals_20200811.ADDRESS = '1029 WISCONSIN ST' Or Laterals_20200811.ADDRESS = '17-61 WATCHMAN WAY' Or Laterals_20200811.ADDRESS = '751 MISSOURI ST' Or Laterals_20200811.ADDRESS = '873-879 MISSOURI ST' Or Laterals_20200811.ADDRESS = '31-45 WATCHMAN WAY' Or Laterals_20200811.ADDRESS = '15-29 WATCHMAN WAY' Or Laterals_20200811.ADDRESS = '801-817 MISSOURI ST' Or Laterals_20200811.ADDRESS = '1740 CESAR CHAVEZ ST'",
+    None
+    )
+
+
+
+
+
+######################################
+######### GeoProcessing Tools #########
+######################################
+
+
+
+######### Field Calculator #########
+
+
+##### Set StreetName
+
+fieldCalc(!Type!,!Address!)
+
+def fieldCalc(ftype,faddr):
+    if (ftype=='Storm Lateral'):
+        return 'PORTOLA DR'
+    else:
+        return faddr
+
+
+
+func(!PIPE_ID!)
+
+def func(PIPE_ID):
+    string = PIPE_ID
+    str_find = "_"
+    str_replace = "-"
+    if string.find(str_find) > -1:
+        string = string.replace(str_find, str_replace)
+    return string
+
+
+#print(func("SDMH1700_PL1700"))
+
+
+
+
+ValueCheck(!MAP_JOIN!,!MapJoin2!)
+
+def ValueCheck(MAP_JOIN,MapJoin2):
+    if MAP_JOIN == ' ':  # MAP_JOIN field contained a space rather than empty or null
+        return MapJoin2
+    else:
+        return MAP_JOIN
+
+
+
+
+ValueCheck(!Address!)
+
+def ValueCheck(Address):
+        return MapJoin2
+
+
+
+ValueCheck(!LAT_ID!)
+
+def ValueCheck(LAT_ID):
+    if LAT_ID.find("_") == 0:
+        return LAT_ID
+    else:
+        return "_" + LAT_ID
+
+
+
+ValueCheck(!ADDRESS!,!MAP_JOIN!)
+
+def ValueCheck(ADDRESS,MAP_JOIN):
+    if len(MAP_JOIN) > 1: # GT 1 in case value == " "
+        return MAP_JOIN[0:MAP_JOIN.find("_")]
+    elif len(ADDRESS) > 0:
+        return ADDRESS
+
+
+
+def valueCheck(Address, ADDR2, StType, street):
+    #return " "
+    if Address + " " + StType != ADDR2:
+        if street.startswith("0"):
+            street=street[1:len(street)]
+            strNum = Address[0:Address.find(" ")]
+            ADDR1 =  strNum + " " + street  + " " + StType
+        return ADDR1
+    else:
+        return ""
+
+
+print(valueCheck("110 07TH ST","579 POTRERO AVE", "ST", "07TH"))
+
+
+
+def ValueCheck(MAP_JOIN):
+    if MAP_JOIN.endswith("TrapFoundation C/O_L1"):  # MAP_JOIN field contained a space rather than empty or null
+        return MAP_JOIN.rstrip("_L1")
+    else:
+        return MAP_JOIN
+
+
+
+
+def valueCheck(ADDRESS,LAT_ID,ACCESS,END):
+    #return " "
+    if LAT_ID.find("_") != 0:
+        LAT_ID = "_" + LAT_ID
+    return str.upper(ADDRESS+LAT_ID+ACCESS+END)
+
+
+
+
+######### Select By Attribute #########
+
+Parcels.Address IN (
+'1695 18TH',
+'810 07TH ST', 
+'1001 17TH ST', 
+'1001 MARIPOSA', 
+'208 PENNSYLVANIA', 
+'1130 MARIPOSA', 
+'1020 MARIPOSA', 
+'1025 17TH',
+'999 16TH', 
+'49 MISSOURI', 
+'1050 17TH ST'
+)
+
+
+
+
+## MH search
+
+AA_NODE_ID = 197312
+MH_ID LIKE 'MH1850'
+
+
+
+Address_In = 'In Progress' AND Assigned_T = 'Pro-Pipe'
+AND (
+    PG&E_Coord IN ('',' ','Not Reviewed') OR PG&E_Coord IS NULL
+    PG&E_Coord = '' OR PG&E_Coord = ' ' OR PG&E_Coord = 'Not Reviewed' OR PG&E_Coord IS NULL
+)
+AND (
+    NOT Lower_Segm = 'Complete Inspection' AND NOT Lower_Segm = 'Previously Complete'
+    OR
+    NOT Upper_Segm = 'Complete Inspection' AND NOT Upper_Segm = 'Previously Complete'
+ )
+
+
+
+
+
+######################################
+######### Arcade Expressions #########
+######################################
+
+
+
+######### Symbology Arcade Expression #########
+
+
+var valClear = $feature.CLEAR
+var valFootage = $feature.MAIN_FT
+var result = ''
+
+if (valClear == 'Incomplete Inspection') {
+    if (valFootage == 0) {
+        result = 'Incomplete Inspection,0';
+    } else {
+        result = 'Incomplete Inspection';
+    }
+    return result
+}
+
+$feature.CLEAR
+
+
